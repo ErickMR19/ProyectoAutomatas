@@ -28,14 +28,13 @@ reservadas = {
     'O' : 'O'
 }
 
-tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'DOSPUNTOS', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'PUNTO', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINLINEA'] + list(reservadas.values())
+tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINLINEA'] + list(reservadas.values())
 
 t_PARRI=r'\('
 t_PARRD=r'\)'
 t_PARCI=r'\['
 t_PARCD=r'\]'
 t_COMA=r','
-t_DOSPUNTOS=r':'
 t_IGUAL=r'='
 t_MAS=r'\+'
 t_MEN=r'-'
@@ -118,11 +117,16 @@ def p_tipo_basico(p):
                     | CADENA
                     | CARACTER '''
 
+def p_LITERALBOOL(p):
+    '''literal-bool : VERDADERO
+                    | FALSO'''
+
 def p_LITERAL(p):
     '''literal : LITENTERO
                | LITREAL
                | LITCADENA
-               | LITCARACTER '''
+               | LITCARACTER
+               | literal-bool'''
 
 
 ########################################################## DECLARACIONES VARIABLES
@@ -196,6 +200,8 @@ def p_inst_declaracion(p):
             | inst-si-entonces-sino
             | inst-mientras
             | inst-repetir
+            | inst-imprimir
+            | inst-leer
             | asignacion
             | exp cr'''
 
@@ -207,6 +213,25 @@ def p_asignacion_ID(p):
 
 def p_asignacion_ID_M(p):
     'asignacionIDs	:	asignacionIDs IDENTIFICADOR IGUAL '
+
+def p_inst_imprimir(p):
+    'inst-imprimir : IMPRIMIR listaValores cr'
+
+def p_inst_leer(p):
+    'inst-leer : LEER listaID cr'
+
+def p_lista_identificadores_M(p):
+    'listaID : IDENTIFICADOR COMA listaID'
+
+def p_lista_identificadores(p):
+    'listaID  : IDENTIFICADOR '
+
+def p_lista_valores_M(p):
+    'listaValores : exp COMA listaValores'
+
+def p_lista_valores(p):
+    '''listaValores : exp
+                    | NL'''
 ########################################################## FIN DECLARACIONES INSTRUCCIONES
 
 ########################################################## DECLARACIONES EXPRESIONES
