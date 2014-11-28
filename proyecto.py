@@ -128,7 +128,6 @@ def p_LITERAL(p):
                | LITCARACTER
                | literal-bool'''
 
-
 ########################################################## DECLARACIONES VARIABLES
 
 def p_dec_variable_B(p):
@@ -260,6 +259,7 @@ def p_expresiones(p):
             | exp DIV exp
             | exp MOD exp
             | exp POTENCIA exp'''
+    print(p[1])
 
 def p_exp_parentesis(p):
     'exp	: PARRI exp PARRD'
@@ -267,6 +267,7 @@ def p_exp_parentesis(p):
 
 def p_exp_final(p):
     'exp	: exp-valor'
+    p[0] = p[1]
 
 def p_exp_final_conoperador(p):
     'exp	: OPERADORUNARIO exp-valor'
@@ -274,6 +275,7 @@ def p_exp_final_conoperador(p):
 def p_decs_globaswl(p):
     '''exp-valor	: literal
                     | IDENTIFICADOR'''
+    p[0] = p[1]
 
 
 def p_operadoresunarios(p):
@@ -287,7 +289,7 @@ def p_inst_si_entonces(p):
     'inst-si-entonces : SI PARRI exp PARRD ENTONCES cr inst-bloque'
 
 def p_inst_si_entonces_sino(p):
-    'inst-si-entonces-sino : SI PARRI exp PARRD ENTONCES cr inst-bloque SINO inst-bloque'
+    'inst-si-entonces-sino : SI PARRI exp PARRD ENTONCES cr inst-bloque SINO cr inst-bloque'
 
 def p_inst_mientras(p):
     'inst-mientras : MIENTRAS PARRI exp PARRD HACER cr inst-bloque'
