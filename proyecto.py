@@ -24,12 +24,11 @@ reservadas = {
     'NL' : 'NL',
     'VERDADERO' : 'VERDADERO',
     'FALSO' : 'FALSO',
-    'MOD' : 'MOD',
     'Y' : 'Y',
     'O' : 'O'
 }
 
-tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'DOSPUNTOS', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'Y', 'O', 'PUNTO', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINLINEA'] + list(reservadas.values())
+tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'DOSPUNTOS', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'PUNTO', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINLINEA'] + list(reservadas.values())
 
 t_PARRI=r'\('
 t_PARRD=r'\)'
@@ -63,11 +62,11 @@ def t_FINLINEA(t):
 def t_IDENTIFICADOR(t):
     r'[A-Z][A-Z0-9]*'
     t.type = reservadas.get(t.value, 'IDENTIFICADOR')    # Check for reserved words
-    #print(t)
+    print(t)
     return t
 
 
-t_ignore = " "
+t_ignore = " \t"
 
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
@@ -89,14 +88,21 @@ def p_entrada(p):
     print("VALIDO")
 
 def p_programa(p):
-    'programa : IDENTIFICADOR INICIOPROGRAMA cr decs-global-opc decs-proc-opc PRINCIPAL cr bloque FINPROGRAMA'
+    'programa : IDENTIFICADOR INICIOPROGRAMA cr decs-global-opc decs-proc-opc PRINCIPAL cr bloque FINPROGRAMA eof'
 
 def p_cr(p):
     'cr : FINLINEA'
 
+def p_eof(p):
+    '''eof : cr
+           | '''
+
 ########################################################## DECLARACIONES VARIABLES GLOBALES
 def p_decs_global_opc(p):
     'decs-global-opc : decs-global'
+
+def p_decs_global_opc_e(p):
+    'decs-global-opc : '
 
 def p_decs_global_M(p):
     'decs-global : decs-global dec-variable'
@@ -189,7 +195,7 @@ def p_inst_declaracion(p):
             | inst-si-entonces
             | inst-si-entonces-sino
             | inst-mientras
-            | inst-repetir 
+            | inst-repetir
             | asignacion
             | exp cr'''
 
@@ -232,6 +238,7 @@ def p_expresiones(p):
 
 def p_exp_parentesis(p):
     'exp	: PARRI exp PARRD'
+    p[0] = p[2]
 
 def p_exp_final(p):
     'exp	: exp-valor'
