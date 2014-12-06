@@ -28,7 +28,7 @@ reservadas = {
     'O' : 'O'
 }
 
-tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINLINEA'] + list(reservadas.values())
+tokens = ['PARRI', 'PARRD', 'PARCI', 'PARCD', 'COMA', 'IGUAL', 'MAS', 'MEN','POTENCIA', 'MUL', 'DIV', 'MOD', 'MAYQ', 'MENQ', 'NO', 'IGUIGU', 'MAYQIGU', 'MENQIGU', 'NOIGU', 'IDENTIFICADOR', 'LITENTERO', 'LITREAL', 'LITCADENA', 'LITCARACTER', 'FINDELINEA'] + list(reservadas.values())
 
 t_PARRI=r'\('
 t_PARRD=r'\)'
@@ -38,6 +38,7 @@ t_COMA=r','
 t_IGUAL=r'='
 t_MAS=r'\+'
 t_MEN=r'-'
+t_MOD=r'%'
 t_POTENCIA=r'\*\*'
 t_MUL=r'\*'
 t_DIV=r'/'
@@ -48,24 +49,42 @@ t_IGUIGU=r'=='
 t_MAYQIGU=r'>='
 t_MENQIGU=r'<='
 t_NOIGU=r'!='
-t_LITENTERO=r'[0-9]+'
-t_LITREAL=r'[0-9]+(\.[0-9]+)'
 t_LITCADENA=r'"[A-Z0-9]+"'
-t_LITCARACTER=r'[A-Z]'
+t_LITCARACTER=r'\'[A-Z]\''
 
-def t_FINLINEA(t):
-    r'\n+'
-    t.lexer.lineno += len(t.value)
+def t_LITREAL(t):
+    r'[0-9]+(\.[0-9]+)'
+   # print(t)
+    t.value = float(t.value)
     return t
+
+def t_LITENTERO(t):
+    r'[0-9]+'
+   # print(t)
+    t.value = int(t.value)
+    return t
+
+def t_FINDELINEA(t):
+    r'(\n)+'
+    t.lexer.lineno += t.value.count("\n")
+    return t
+
+def t_ignore_comment(t):
+    r'(  (/\*(.|\n)*?\*/) |(//.*?\n) )+'
+    t.lexer.lineno += t.value.count("\n")
 
 def t_IDENTIFICADOR(t):
     r'[A-Z][A-Z0-9]*'
     t.type = reservadas.get(t.value, 'IDENTIFICADOR')    # Check for reserved words
-    print(t)
+    #print(t)
     return t
 
 
 t_ignore = " \t"
+
+def t_ignore_CPP_COMMENT(t):
+    r'(/\*(.|\n)*?\*/)|(//.*?\n)'
+    t.lexer.lineno += t.value.count("\n")
 
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
@@ -80,7 +99,12 @@ lex.lex()
 ###### PARSER
 
 listatokens = list()
-listadeclaraciones = list()
+listaIdentificadores = list()
+listaIdentificadoresSimplesTipo = list()
+listaIdentificadoresArreglosTipo = list()
+listaProcedimientos = list()
+listaDeErrores = list()
+listaTemporal = list()
 
 def p_entrada(p):
     'statement : programa'
@@ -95,6 +119,10 @@ def p_cr(p):
 def p_eof(p):
     '''eof : cr
            | '''
+
+def p_finlinea(p):
+    '''FINLINEA : FINDELINEA FINLINEA
+                | FINDELINEA'''
 
 ########################################################## DECLARACIONES VARIABLES GLOBALES
 def p_decs_global_opc(p):
@@ -116,6 +144,7 @@ def p_tipo_basico(p):
                     | REAL
                     | CADENA
                     | CARACTER '''
+    p[0] = p[1]
 
 def p_LITERALBOOL(p):
     '''literal-bool : VERDADERO
@@ -127,49 +156,92 @@ def p_LITERAL(p):
                | LITCADENA
                | LITCARACTER
                | literal-bool'''
+    p[0] = p[1]
 
 ########################################################## DECLARACIONES VARIABLES
 
 def p_dec_variable_B(p):
     'dec-variable : tipo-basico decs-basico cr'
+    p[0] = ('declaracionsimple',p[1],p[2])
+    print(p[0])
+    listaTemporal.clear()
 
 def p_dec_variable_A(p):
     'dec-variable : tipo-basico decs-arreglo cr'
+    p[0] = ('declaracionarreglo',p[1],p[2])
+    print(p[0])
+    listaTemporal.clear()
 
 #declaraciones variables simples
 
 def p_decs_basico_M(p):
     'decs-basico : dec-basico COMA decs-basico'
+    listaTemporal.insert(0,p[1])
+    p[0] = listaTemporal
+
 
 def p_decs_basico(p):
     'decs-basico : dec-basico'
+    listaTemporal.insert(0,p[1])
+    p[0] = listaTemporal
 
 def p_dec_basico(p):
     'dec-basico  : IDENTIFICADOR '
+    if p[1] in listaIdentificadores:
+        print("Identificador duplicado: "+p[1])
+        exit()
+    listaIdentificadores.append(p[1])
+    p[0] = ('NO',p[1])
 
 def p_dec_basico_inic(p):
     'dec-basico : IDENTIFICADOR IGUAL VALORINICIALIZACON'
+    if p[1] in listaIdentificadores:
+        print("Identificador duplicado: "+p[1])
+        exit()
+    listaIdentificadores.append(p[1])
+    p[0] = ('SI',p[1],p[3])
 
 def p_VALORINICIALIZACON(p):
     '''VALORINICIALIZACON : literal
                         | IDENTIFICADOR '''
+    p[0] = p[1]
 
 #declaraciones arreglos
 def p_decs_arreglo_M(p):
     'decs-arreglo : dec-arreglo'
+    listaTemporal.insert(0,p[1])
+    p[0] = listaTemporal
 
 def p_decs_arreglo(p):
     'decs-arreglo : dec-arreglo COMA decs-arreglo'
+    listaTemporal.insert(0, p[1])
+    p[0] = listaTemporal
 
 def p_dec_arreglo(p):
     'dec-arreglo : IDENTIFICADOR PARCI tam-arreglo PARCD'
+    if p[1] in listaIdentificadores:
+        print("Identificador duplicado: "+p[1])
+        exit()
+    listaIdentificadores.append(p[1])
+    print(listaIdentificadores)
+    p[0] = ('arreglou',p[1],p[3])
 
 def p_dec_arreglo_bidimensional(p):
     'dec-arreglo : IDENTIFICADOR PARCI tam-arreglo PARCD PARCI tam-arreglo PARCD'
+    if p[1] in listaIdentificadores:
+        print("Identificador duplicado: "+p[1])
+        exit()
+    listaIdentificadores.append(p[1])
+    print(listaIdentificadores)
+    p[0] = ('arreglob',p[1],p[3],p[6])
 
 def p_tam_arreglo(p):
     '''tam-arreglo : IDENTIFICADOR
                    | LITENTERO '''
+    if type(p[1]) != type(1) and p[1] not in listaIdentificadores:
+        print("Identificador no declarado: "+p[1])
+        exit()
+    p[0] = p[1]
 ########################################################## FIN DECLARACIONES VARAIBLES
 
 ########################################################## DECLARACIONES INSTRUCCIONES
@@ -259,7 +331,6 @@ def p_expresiones(p):
             | exp DIV exp
             | exp MOD exp
             | exp POTENCIA exp'''
-    print(p[1])
 
 def p_exp_parentesis(p):
     'exp	: PARRI exp PARRD'
@@ -318,13 +389,15 @@ def p_dec_proc(p):
 ########################################################## FIN DECLARACIONES PROCEDIMIENTOS
 def p_error(p):
     if p is not None:
-        print("Error de sintaxis en la linea %s"%(p.lineno)+"::: %s inesperado" %p.type)
+        listaDeErrores.append("Error de sintaxis en la linea %s"%(p.lineno)+"::: %s inesperado" %p.type)
         yacc.errok()
     else:
-        print("Fin de archivo inesperado")
+        listaDeErrores.append("Fin de archivo inesperado")
 
 yacc.yacc()
 
 file = open('pruebas','r')
 fileUpper = file.read().upper()
 yacc.parse(fileUpper)
+
+print(listaDeErrores)

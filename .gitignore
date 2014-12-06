@@ -58,3 +58,11 @@ pruebas
 parsetab.py
 
 parser.out
+.idea/vcs.xml
+.idea/.name
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/ProyectoAutomatas.iml
+.idea/scopes/scope_settings.xml
+.idea/workspace.xml
