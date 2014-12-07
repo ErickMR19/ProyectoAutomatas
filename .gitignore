@@ -66,3 +66,6 @@ parser.out
 .idea/ProyectoAutomatas.iml
 .idea/scopes/scope_settings.xml
 .idea/workspace.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+proyectow.py
