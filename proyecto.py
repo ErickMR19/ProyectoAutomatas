@@ -87,9 +87,7 @@ def t_ignore_comentarios(t):
     t.lexer.lineno += t.value.count("\n")
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
-    print(t.value.count)
-    exit(-1)
+    listaDeErroresLexicos.append("Caracter ilegal '%s'" % t.value[0]+"en la linea: "+str(t.lexer.lineno)+":%s"%(find_column(t.lexer)))
     t.lexer.skip(1)
 
 
@@ -163,7 +161,7 @@ def p_dec_variable_B(p):
     p[0] = ('declaraciones simple',p[1],list(p[2]))
     #lo guarda en un diccionario para mantener variables y tipos
     for v in p[2]:
-        diccionariosVariablesGlobales[v[1]] = p[1]
+        diccionarioVariables[v[1]] = p[1]
     listaTemporal.clear()
 
 # declaracion de variables que son arreglos
@@ -173,9 +171,9 @@ def p_dec_variable_A(p):
     #lo guarda en un diccionario para mantener variables y tipos
     for v in p[2]:
         if v[0] == 'arreglou':
-            diccionariosVariablesGlobales[v[1]] = p[1]+"[]"
+            diccionarioVariables[v[1]] = p[1]+"[]"
         else:
-            diccionariosVariablesGlobales[v[1]] = p[1]+"[][]"
+            diccionarioVariables[v[1]] = p[1]+"[][]"
     listaTemporal.clear()
 
 #declaraciones variables simples
@@ -195,7 +193,7 @@ def p_dec_basico(p):
     'dec-basico  : IDENTIFICADOR '
     # verifica que el identificador no haya sido utilizado
     if p[1] in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1)) )
+        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
     listaIdentificadores.append(p[1])
     p[0] = ('No inicializada',p[1])
 
@@ -203,13 +201,12 @@ def p_dec_basico_inic(p):
     'dec-basico : IDENTIFICADOR IGUAL VALORINICIALIZACON'
     # verifica que el identificador no haya sido utilizado
     if p[1] in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1)) )
+        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
     listaIdentificadores.append(p[1])
     p[0] = ('inicializada',p[1],p[3])
 
 def p_VALORINICIALIZACON(p):
-    '''VALORINICIALIZACON : literal
-                        | IDENTIFICADOR '''
+    '''VALORINICIALIZACON : exp '''
     p[0] = p[1]
 
 #declaraciones arreglos
@@ -227,7 +224,7 @@ def p_dec_arreglo(p):
     'dec-arreglo : IDENTIFICADOR PARCI tam-arreglo PARCD'
     # verifica que el identificador no haya sido utilizado
     if p[1] in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1)) )
+        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
     listaIdentificadores.insert(0,p[1])
     p[0] = ('arreglou',p[1],p[3])
 
@@ -235,7 +232,7 @@ def p_dec_arreglo_bidimensional(p):
     'dec-arreglo : IDENTIFICADOR PARCI tam-arreglo PARCD PARCI tam-arreglo PARCD'
     # verifica que el identificador no haya sido utilizado
     if p[1] in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1)) )
+        listaDeErroresSemanticos.append("Identificador duplicado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
     listaIdentificadores.insert(0,p[1])
     p[0] = ('arreglob',p[1],p[3],p[6])
 
@@ -244,14 +241,14 @@ def p_tam_arreglo(p):
                    | LITENTERO '''
     if type(p[1]) != type(1): #si es un identificador
         if p[1] not in listaIdentificadores:
-            # verifica que el identificador haya sido utilizado
-            listaDeErroresSemanticos.append("Identificador no declarado: "+p[1])
+            # verifica que el identificador haya sido declarado
+            listaDeErroresSemanticos.append("Identificador no declarado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
         else:
             try:
-                if diccionariosVariablesGlobales[p[1]] != 'ENTERO':
-                    listaDeErroresSemanticos.append("Identificador: "+p[1]+" no valido en este ambito, el tamaño de los arreglos deben declararse con un entero. ("+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1))+")")
+                if diccionarioVariables[p[1]] != 'ENTERO':  # si es un identificador, verifica que sea de tipo entero
+                    listaDeErroresSemanticos.append("Identificador: "+p[1]+" no valido en este ambito, el tamaño de los arreglos deben declararse con un entero. ("+str(p.lineno(1) ) +":%s"%(find_column_production(p,1))+")")
             except KeyError:
-                    listaDeErroresSemanticos.append("Identificador: "+p[1]+" no puede utilizarse para declarar un arreglo, si este fue declarado en la misma sentencia. ("+str(p.lineno(1) ) +":%s"%(find_column_production(fileUpper,p,1))+")")
+                    listaDeErroresSemanticos.append("Identificador: "+p[1]+" no puede utilizarse para declarar un arreglo, si este fue declarado en la misma sentencia. ("+str(p.lineno(1) ) +":%s"%(find_column_production(p,1))+")")
 
 
     p[0] = p[1]
@@ -259,10 +256,12 @@ def p_tam_arreglo(p):
 
 ########################################################## DECLARACIONES INSTRUCCIONES
 
+# se utiliza en los caso que una instruccion requiere o una sola instruccion o un bloque de instrucciones
 def p_inst_bloque(p):
     '''inst-bloque  : inst
 					| bloque'''
 
+# un bloque generico de instrucciones con varios usos
 def p_bloque(p):
     'bloque : INICIO cr bloque-inst-opc FIN cr'
 
@@ -272,12 +271,14 @@ def p_bloque_inst_opc_e(p):
 def p_bloque_inst_opc(p):
     'bloque-inst-opc : bloque-inst'
 
+# un bloque puede contener una o mas instrucciones
 def p_bloque_inst_M(p):
     'bloque-inst : inst bloque-inst'
 
 def p_bloque_inst(p):
     'bloque-inst : inst'
 
+# las distintas instrucciones que se pueden utilizar
 def p_inst_declaracion(p):
     '''inst : dec-variable
             | inst-si-entonces
@@ -294,9 +295,16 @@ def p_asignacion(p):
 
 def p_asignacion_ID(p):
     'asignacionIDs	:	IDENTIFICADOR IGUAL'
+    if p[1] not in listaIdentificadores:
+        # verifica que el identificador haya sido declarado
+        listaDeErroresSemanticos.append("Identificador no declarado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
 
+# asignaciones encadenadas
 def p_asignacion_ID_M(p):
     'asignacionIDs	:	asignacionIDs IDENTIFICADOR IGUAL '
+    if p[1] not in listaIdentificadores:
+        # verifica que el identificador haya sido declarado
+        listaDeErroresSemanticos.append("Identificador no declarado: "+p[2]+" en la linea: "+str(p.lineno(2) ) +":%s"%(find_column_production(p,2)) )
 
 def p_inst_imprimir(p):
     'inst-imprimir : IMPRIMIR listaValores cr'
@@ -308,13 +316,13 @@ def p_lista_identificadores_M(p):
     'listaID : IDENTIFICADOR COMA listaID'
     # verifica que el identificador haya sido utilizado
     if p[1] not in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador no declarado: "+p[1])
+            listaDeErroresSemanticos.append("Identificador no declarado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
 
 def p_lista_identificadores(p):
     'listaID  : IDENTIFICADOR '
     # verifica que el identificador haya sido utilizado
     if p[1] not in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador no declarado: "+p[1])
+            listaDeErroresSemanticos.append("Identificador no declarado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
 
 def p_lista_valores_M(p):
     'listaValores : exp COMA listaValores'
@@ -326,6 +334,7 @@ def p_lista_valores(p):
 
 ########################################################## DECLARACIONES EXPRESIONES
 
+# precedencia utilizada para las expresiones que utilizan operadores binarios
 precedence = (
 	('left', 'Y'),
     ('left', 'O'),
@@ -371,7 +380,7 @@ def p_decs_valores_id(p):
     'exp-valor	: IDENTIFICADOR'
     # verifica que el identificador haya sido utilizado
     if p[1] not in listaIdentificadores:
-        listaDeErrores.append("Identificador no declarado: "+p[1])
+        listaDeErroresSintacticos.append("Identificador no declarado: "+p[1]+" en la linea: "+str(p.lineno(1) ) +":%s"%(find_column_production(p,1)) )
 
 
 def p_operadoresunarios(p):
@@ -394,6 +403,7 @@ def p_inst_repetir(p):
     'inst-repetir : REPETIR cr bloque-inst-opc HASTA PARRI exp PARRD cr'
 
 ########################################################## FIN DECLARACIONES CONDICIONALES
+
 ########################################################## DECLARACIONES PROCEDIMIENTOS
 def p_decs_proc_opc_e(p):
     'decs-proc-opc : '
@@ -411,7 +421,7 @@ def p_dec_proc(p):
     'dec-proc : PROCEDIMIENTO IDENTIFICADOR cr bloque'
     # verifica que el identificador no haya sido utilizado
     if p[2] in listaIdentificadores:
-        listaDeErroresSemanticos.append("Identificador duplicado: "+p[2]+" en la linea: "+str(p.lineno(2) ) +":%s"%(find_column_production(fileUpper,p,2)) )
+        listaDeErroresSemanticos.append("Identificador duplicado: "+p[2]+" en la linea: "+str(p.lineno(2) ) +":%s"%(find_column_production(p,2)) )
     else:
         listaProcedimientos.append(p[2])
         listaIdentificadores.insert(0,p[2])
@@ -419,78 +429,107 @@ def p_dec_proc(p):
 ########################################################## FIN DECLARACIONES PROCEDIMIENTOS
 def p_error(p):
     if p is not None:
-        listaDeErrores.append("Error de sintaxis en la linea %s"%(p.lineno)+":%s"%(find_column(fileUpper,p))+" :: %s inesperado" %p.type)
+        listaDeErroresSintacticos.append("Error de sintaxis en la linea %s"%(p.lineno)+":%s"%(find_column(p))+" :: %s inesperado" %p.type)
         yacc.errok()
     else:
-        listaDeErrores.append("Fin de archivo inesperado")
+        listaDeErroresSintacticos.append("Fin de archivo inesperado")
 
 # TOMADA DE http://www.dabeaz.com/ply/ply.html
 # Compute column.
 #     input is the input text string
 #     token is a token instance
-def find_column(input,token):
-    last_cr = input.rfind('\n',0,token.lexpos)
+def find_column(token):
+    last_cr = fileUpper.rfind('\n',0,token.lexpos)
     if last_cr < 0:
         last_cr = 0
     column = (token.lexpos - last_cr)
     return column
 
 # Similar a la anterior, es util cuando se quiere indicar la posición de un error no lexico/sintactico
-def find_column_production(input,token,entrada):
-    last_cr = input.rfind('\n',0,token.lexpos(entrada))
+def find_column_production(token,entrada):
+    last_cr = fileUpper.rfind('\n',0,token.lexpos(entrada))
     if last_cr < 0:
         last_cr = 0
     column = (token.lexpos(entrada) - last_cr)
     return column
 
-yacc.yacc()
+yacc.yacc(optimize=1nb )
 
 # obtiene los argumentos de invocacion
 archivos = list(sys.argv)
-#se quita el propio nombre
+
+#se quita el propio nombre del archivo
 archivos.remove(sys.argv[0])
-archivos.append("pruebas")
+
+# error si no se enviar archivos como parametro
 if len(archivos) == 0:
         print("error, debe enviar el nombre de los archivos deseados como parametro de invocacion\npython[3] "+sys.argv[0]+" archivo [archivo2 ... archivoN]")
+
 for filename in archivos:
     # Build the lexer
+    # Se invoca en cada iteracion para que el contador de lineas se resetee
     lex.lex()
-    listaDeErrores = list()
+
+    #lista de errores léxicos
+    listaDeErroresLexicos = list()
+    listaDeErroresLexicos.append("Errores Lexicos Encontrados:")
+
+    listaDeErroresSintacticos = list()
+    listaDeErroresSintacticos.append("Errores Sintacticos Encontrados")
+
     listaDeErroresSemanticos = list()
+    listaDeErroresSemanticos.append("Errores Semanticos Encontrados")
+
     listaIdentificadores = list()
-    diccionariosVariablesGlobales = dict()
+    diccionarioVariables = dict()
     listaProcedimientos = list()
+
     listaTemporal = list()
     listaTemporalExterna = list()
+    # trata de abrir el archivo
     try:
         file = open(filename,'r')
     except FileNotFoundError:
         print("Archivo no encontrado: ",filename)
         continue
 
-    print("////////////////////\nArchivo: ",filename)
+    print("\n////////////////////\nArchivo: ",filename,'\n--------------------')
 
+    # lee el archivo y lo pasa a mayusculas
     fileUpper = file.read().upper()
+    # parsea el archivo
     yacc.parse(fileUpper)
+    # cierra el archivo
+    file.close()
 
-
-    for item in listaDeErrores:
-        print(item)
-
-    if len(listaDeErrores) > 0:
+    if len(listaDeErroresLexicos) > 1:
+        # imprime los errores lexicos, si los hay termina con este archivo y pasa al siguiente
+        for item in listaDeErroresLexicos:
+            print(item)
         print("////////////////////")
         continue
 
-    for item in listaDeErroresSemanticos:
-        print(item)
 
-    if len(listaDeErroresSemanticos) > 0:
+    if len(listaDeErroresSintacticos) > 1:
+        # imprime los errores sintacticos, si los hay termina con este archivo y pasa al siguiente
+        for item in listaDeErroresSintacticos:
+            print(item)
+        print("////////////////////")
+        continue
+
+
+    if len(listaDeErroresSemanticos) > 1:
+        # imprime los errores semanticos, que se hayan detectado, si los hay termina con este archivo y pasa al siguiente
+        for item in listaDeErroresSemanticos:
+            print(item)
         print("////////////////////")
         continue
 
     print("Identificadores de variables y su tipo")
-    print(diccionariosVariablesGlobales)
+    print(diccionarioVariables)
+    print('--------------------')
     print("Identificadores de procedimientos")
     print(listaProcedimientos)
+    print('--------------------')
 
     print("El archivo es valido.\n////////////////////")
